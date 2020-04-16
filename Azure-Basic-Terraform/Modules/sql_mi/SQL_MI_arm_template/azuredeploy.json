@@ -1,0 +1,126 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+  "parameters": {
+    "managed_instance_name": {
+      "type": "string"
+    },
+    "managed_instance_database": {
+      "type": "string"
+    },
+    "managed_instance_administratorLogin": {
+      "type": "string"
+    },
+    "managed_instance_administratorLoginPassword": {
+      "type": "securestring"
+    },
+        "sqlManagedInstance_skuName": {
+            "type": "string",
+            "defaultValue": "GP_Gen5",
+            "metadata": {
+                "description": "SKU NAME (GP_Gen4, GP_Gen5, BC_GEN5)"
+            },
+            "allowedValues": [
+                "GP_Gen4",
+                "GP_Gen5",
+                "BC_Gen4",
+                "BC_Gen5"
+            ]
+    },
+        "sqlManagedInstance_skuEdition": {
+            "type": "string",
+            "defaultValue": "GeneralPurpose",
+            "metadata": {
+                "description": "SKU Edition (GeneralPurpose, BusinessCritical)"
+            },
+            "allowedValues": [
+                "GeneralPurpose",
+                "BusinessCritical"
+            ]
+    },
+        "sqlManagedInstance_hardwareFamily": {
+            "type": "string",
+            "defaultValue": "Gen5",
+            "metadata": {
+                "description": "Hardware family (Gen4, Gen5)"
+            },
+            "allowedValues": [
+                "Gen4",
+                "Gen5"
+            ]
+    },
+        "data_subnet_id": {
+            "type": "string"
+        },
+        "sqlManagedInstance_licenseType": {
+            "type": "string",
+            "defaultValue": "BasePrice",
+            "metadata": {
+                "description": "Type of license: BasePrice (BYOL) or LicenceIncluded"
+            },
+            "allowedValues": [
+                "BasePrice",
+                "LicenseIncluded"
+            ]
+        },
+        "sqlManagedInstance_vCores": {
+            "type": "string",
+            "defaultValue": "4",
+            "metadata": {
+                "description": "Number of vCores for this instance"
+            }
+        },
+        "sqlManagedInstance_storageSizeInGB": {
+            "type": "string",
+            "defaultValue": "96",
+            "metadata": {
+                "description": "Amount of Storage in GB for this instance"
+            }
+        },
+        "location": {
+            "type": "string",
+            "defaultValue": "eastus2",
+            "metadata": {
+                "description": "Location for all resources"
+            }
+        }
+  },
+    "variables": {},
+  "resources": [
+    {
+      "type": "Microsoft.Sql/managedInstances",
+      "apiVersion": "2015-05-01-preview",
+      "name": "[parameters('managed_instance_name')]",
+      "location": "[parameters('location')]",
+      "tags": {},
+      "sku": {
+        "name": "[parameters('sqlManagedInstance_skuName')]",
+        "tier": "[parameters('sqlManagedInstance_skuEdition')]",
+        "family": "[parameters('sqlManagedInstance_hardwareFamily')]"
+      },
+      "identity": {
+        "type": "SystemAssigned"
+      },
+      "properties": {
+        "administratorLogin": "[parameters('managed_instance_administratorLogin')]",
+        "administratorLoginPassword": "[parameters('managed_instance_administratorLoginPassword')]",
+        "subnetId": "[parameters('data_subnet_id')]",
+        "licenseType": "[parameters('sqlManagedInstance_licenseType')]",
+        "vCores": "[parameters('sqlManagedInstance_vCores')]",
+        "storageSizeInGB": "[parameters('sqlManagedInstance_storageSizeInGB')]"
+      }
+    },
+    {
+      "type": "Microsoft.Sql/managedInstances/databases",
+      "apiVersion": "2017-03-01-preview",
+      "name": "[concat(parameters('managed_instance_name'), '/',parameters('managed_instance_database'))]",
+      "location": "[parameters('location')]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Sql/managedInstances', parameters('managed_instance_name'))]"
+      ],
+      "properties": {
+
+      }
+    }
+  ]
+}
