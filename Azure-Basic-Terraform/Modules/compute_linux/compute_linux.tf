@@ -36,7 +36,7 @@ variable "data_disk" {
 }
 
 module "os" {
-  source       = "../Modules/os"
+  source       = "../os"
   vm_os_simple = "${var.vm_os_simple}"
 }
 

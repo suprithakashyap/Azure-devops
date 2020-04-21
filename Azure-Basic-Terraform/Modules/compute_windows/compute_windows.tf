@@ -2,6 +2,7 @@ variable "vm_name" {type = "list" }
 variable "resgrp_name" { }
 variable "location" { }
 variable "vm_size" {type = "list" }
+
 variable "vnet_name" { }
 variable "vm_os_publisher" {
   default = ""
@@ -59,14 +60,14 @@ resource "null_resource" "subnet_null" {
   triggers = {
     res_name            = "${var.out_resgrp_name}"
     out_subnet_id       = "${var.out_subnet_id}"
-    availability_set_id = "${var.availability_set_id}"
+    #availability_set_id = "${var.availability_set_id}"
     lb_backend_pool_id  = "${var.lb_backend_pool_id}"
   }
 }
 
 
 module "os" {
-  source       = "/terraform/modules/os"
+  source       = "../os"
   vm_os_simple = "${var.vm_os_simple}"
 }
 
@@ -77,6 +78,22 @@ data "azurerm_subnet" "subnet" {
   virtual_network_name = "${var.vnet_name}"
   resource_group_name  = "${var.resgrp_name}"
 }
+
+resource "azurerm_public_ip" "example" {
+  name                    = "${element(var.vm_name,count.index)}" 
+  count                   = "${var.nb_instances}"
+  location                = "${var.location}"
+  resource_group_name     = "${var.resgrp_name}"
+  allocation_method       = "Dynamic"
+  idle_timeout_in_minutes = 30
+  
+
+  tags = {
+    environment = "test"
+  }
+}
+
+
 
 resource "azurerm_network_interface" "nic" {
   depends_on = [null_resource.subnet_null]
@@ -89,10 +106,19 @@ resource "azurerm_network_interface" "nic" {
     name                          = "ip"
     subnet_id                     = "${data.azurerm_subnet.subnet.id}"
     private_ip_address_allocation = "Dynamic"
-    load_balancer_backend_address_pools_ids = ["${var.lb_backend_pool_id}"]
-    load_balancer_inbound_nat_rules_ids     = ["${element(var.lb_nat_rule_id, count.index)}"]
+     public_ip_address_id          = "${element(azurerm_public_ip.example.*.id,count.index)}"
+    #load_balancer_backend_address_pools_ids = ["${var.lb_backend_pool_id}"]
+    #load_balancer_inbound_nat_rules_ids     = ["${element(var.lb_nat_rule_id, count.index)}"]
   }
 }
+
+
+resource "azurerm_network_interface_backend_address_pool_association" "example" {
+  network_interface_id    = azurerm_network_interface.nic.0.id
+  ip_configuration_name   = "ip"
+  backend_address_pool_id = "${var.lb_backend_pool_id}"
+}
+
 
 resource "azurerm_virtual_machine" "windows_vm" {
   count = "${(((var.vm_os_id != "" && var.is_windows_image == "true") || contains(list("${var.vm_os_simple}","${var.vm_os_offer}"), "WindowsServer")) && var.data_disk == "false") ? var.nb_instances : 0}"
@@ -101,7 +127,7 @@ resource "azurerm_virtual_machine" "windows_vm" {
   resource_group_name   = "${var.resgrp_name}"
   network_interface_ids = ["${element(azurerm_network_interface.nic.*.id,count.index)}"]
   vm_size               = "${element(var.vm_size,count.index)}"
-  availability_set_id   = "${var.availability_set_id}"
+  #availability_set_id   = "${var.availability_set_id}"
   delete_os_disk_on_termination = true
 
 
@@ -128,4 +154,6 @@ resource "azurerm_virtual_machine" "windows_vm" {
   os_profile_windows_config {}
 
   tags = "${var.tags}"
+
+
 }

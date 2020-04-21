@@ -47,31 +47,6 @@ variable "access_tier" {
 
 
 
-/*
-variable "firewall_rule_name" {
-  description = "The name of the MySQL Firewall Rule"
-  type        = "list"
-}
-variable "firewall_start_ip" {
-  description = "The Start IP Address associated with this Firewall Rule"
-  type        = "list"
-}
-variable "firewall_end_ip" {
-  description = "The End IP Address associated with this Firewall Rule"
-  type        = "list"
-}
-variable "vnet_rule_name" {
-  description = "The name of the MySQL Virtual Network Rule"
-}
-
-variable "data_subnet_name" { }
-# Azure Firewall variables
-
-variable "firewall_subnet_name" { }
-variable "firewall_public_ip_name" { }
-variable "azure_firewall_name" { }
-*/
-
 #availability_set vars
 variable "availability_set_name" {
   description = "The name of the Availability Set"
@@ -156,35 +131,9 @@ module "security_grp" {
   out_subnet_id       = "${module.network.out_subnet_id}"
 }
 
-/*
-module "azure_firewall" {
-  source                  = "../Modules/azure_firewall"
-  location                = "${var.location}"
-  resgrp_name             = "${var.resource_grp_name}"
-  vnet_name               = "${var.vnet_name}"
-  firewall_subnet_name    = "${var.firewall_subnet_name}"
-  firewall_public_ip_name = "${var.firewall_public_ip_name}"
-  azure_firewall_name     = "${var.azure_firewall_name}"
-  tags                    = "${var.tags}"
-  out_resgrp_name         = "${module.resource_grp.out_resgrp_name}"
-  out_subnet_id           = "${module.network.out_subnet_id}"
-}
-*/
-
-module "availability_set" {
-  source                = "/terraform/modules/availability_set"
-  availability_set_name = "${var.availability_set_name}"
-  location              = "${var.location}"
-  resgrp_name           = "${var.resource_grp_name}"
-  fault_domain_count    = "${var.fault_domain_count}"
-  update_domain_count   = "${var.update_domain_count}"
-  managed               = "${var.managed}"
-  tags                  = "${var.tags}"
-  out_resgrp_name       = "${module.resource_grp.out_resgrp_name}"
-}
 
 module "load_balancer" {
-  source               = "/terraform/modules/azure_lb"
+  source               = "../Modules/azure_lb"
   lb_public_ip_name    = "${var.lb_public_ip_name}"
   location             = "${var.location}"
   resgrp_name          = "${var.resource_grp_name}"
@@ -194,8 +143,9 @@ module "load_balancer" {
   out_resgrp_name      = "${module.resource_grp.out_resgrp_name}"
 }
 
+
 module "compute_windows" {
-  source               = "/terraform/modules/compute_windows"
+  source               = "../Modules/compute_windows"
   vm_name              = "${var.vm_name}"
   resgrp_name          = "${var.resource_grp_name}"
   location             = "${var.location}"
@@ -208,10 +158,11 @@ module "compute_windows" {
   tags                 = "${var.tags}"
   lb_nat_rule_id       = "${module.load_balancer.lb_nat_rule_id}"
   lb_backend_pool_id   = "${module.load_balancer.lb_backend_pool_id}"
-  availability_set_id  = "${module.availability_set.availability_set_id}"
+  #availability_set_id  = "${module.availability_set.availability_set_id}"
   out_subnet_id        = "${module.network.out_subnet_id}"
   out_resgrp_name      = "${module.resource_grp.out_resgrp_name}"
 }
+
 
 module "storage_account" {
   source                    = "../Modules/storage_account"
@@ -225,3 +176,38 @@ module "storage_account" {
   tags                      = "${var.tags}"
   out_resgrp_name           = "${module.resource_grp.out_resgrp_name}"
 }
+
+module "app" {
+source                    = "../Modules/webapp"
+  resgrp_name               = "${var.resource_grp_name}"
+  location                  = "${var.location}"
+}
+
+
+/*
+resource "azurerm_sql_server" "example" {
+  name                         = "mysqlserver"
+  resource_group_name          = "${var.resource_grp_name}"
+  location                     = "West US"
+  version                      = "12.0"
+  administrator_login          = "mradministrator"
+  administrator_login_password = "thisIsDog11"
+
+
+  tags = {
+    environment = "production"
+  }
+}
+
+resource "azurerm_sql_database" "example" {
+  name                = "mysqldatabase"
+  resource_group_name = "${var.resource_grp_name}"
+  location            = "West US"
+  server_name         = azurerm_sql_server.example.name
+
+  tags = {
+    environment = "production"
+  }
+}
+*/
+

@@ -16,3 +16,12 @@ resource "azurerm_storage_account" "test" {
 
   tags = "${var.tags}"
 }
+
+
+output "blob_endpoint" {
+value    = azurerm_storage_account.test.primary_blob_endpoint
+}
+
+output "access_key" {
+value    = azurerm_storage_account.test.primary_access_key
+}
